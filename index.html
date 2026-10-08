@@ -18,7 +18,7 @@ html,body{margin:0;position:fixed;inset:0;width:100%;height:100%;color:#fff;font
 #strip{display:flex;gap:8px;justify-content:center;padding:2px 0 8px}.sp{flex:1}
 .side{width:60px;text-align:center;font-size:9px;letter-spacing:.14em;color:#a9b0d8}
 .side canvas{width:60px;height:46px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;display:block;margin:3px auto 0}
-#mid{flex:1;display:flex;justify-content:center;min-height:0;align-items:flex-start}
+#mid{flex:1 1 0;position:relative;min-height:0;overflow:hidden}#mid canvas{position:absolute;top:0;left:50%;transform:translateX(-50%)}
 #board{flex:none;border-radius:16px;background:rgba(10,12,30,.65);border:1px solid rgba(255,255,255,.14);box-shadow:0 0 40px rgba(120,90,255,.25),inset 0 0 30px rgba(0,0,0,.4)}
 #pad{display:grid;grid-template-columns:repeat(12,1fr);gap:8px;padding:10px 0 8px}
 #pad button{grid-column:span 3;height:54px;border:1px solid rgba(255,255,255,.14);border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.05));color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.35);transition:transform .06s;display:flex;align-items:center;justify-content:center;padding:0}
@@ -265,8 +265,8 @@ addEventListener('keydown',e=>{if(e.key==='p'||e.key==='P'||e.key==='Escape')ret
  if(m){e.preventDefault();act(m)}});
 
 /* ---------- layout + boot ---------- */
-function fit(){const h=$('mid').clientHeight,w=window.innerWidth-24;const bh=Math.floor(Math.min(h,w*2));cv.style.height=bh+'px';cv.style.width=bh/2+'px'}
-addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,200));fit();setTimeout(fit,100);
+function fit(){const h=$('mid').clientHeight-4,w=window.innerWidth-24;const bh=Math.floor(Math.min(h,w*2));cv.style.height=bh+'px';cv.style.width=bh/2+'px'}
+if(window.ResizeObserver)new ResizeObserver(fit).observe($('mid'));addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,200));fit();setTimeout(fit,100);
 menu();requestAnimationFrame(t=>{last=t;tick(t)});
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script></body></html>
