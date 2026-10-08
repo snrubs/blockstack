@@ -75,7 +75,7 @@ const cv=$('board'),cx=cv.getContext('2d');
 const store={get(k,d){try{const v=localStorage.getItem('bs_'+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('bs_'+k,JSON.stringify(v))}catch(e){}}};
 let mode=store.get('mode','marathon'),startLv=store.get('lvl',1),muted=store.get('mute',false);
 let grid=Array.from({length:H},()=>Array(W).fill(0)),cur=null,bag=[],queue=[],hold=null,canHold,score=0,lines=0,level=1;
-let softOn=false,softAcc=0,clearing=null,state='menu',dropAcc=0,lockT=0,resets=0,lowest=0,last=0,elapsed=0,parts=[],flash=[];
+let combo=-1,b2b=false,pops=[],softOn=false,softAcc=0,clearing=null,state='menu',dropAcc=0,lockT=0,resets=0,lowest=0,last=0,elapsed=0,parts=[],flash=[];
 
 /* ---------- sound ---------- */
 let ac=null;
@@ -121,9 +121,17 @@ function place(hard){softOn=false;
  const full=[];grid.forEach((r,y)=>{if(r.every(v=>v))full.push(y)});
  const n=full.length;
  if(n){burst(full);cur=null;clearing={rows:full,t:0,above};
-  const oldLv=level;score+=[0,100,300,500,800][n]*level;lines+=n;
+  const oldLv=level,hard4=n===4;let pts=[0,100,300,500,800][n]*level;const msgs=[];
+  // Back-to-back: a Tetris right after a Tetris (no smaller clear between) scores 1.5x
+  if(hard4){if(b2b){pts=pts*1.5;msgs.push('BACK-TO-BACK')}b2b=true}else b2b=false;
+  if(hard4)msgs.unshift('TETRIS');
+  // Combo: consecutive pieces that each clear lines; bonus 50 x combo x level
+  combo++;if(combo>0){pts+=50*combo*level;msgs.push('COMBO '+combo)}
+  pts=Math.round(pts);score+=pts;lines+=n;
+  if(msgs.length)pop(msgs,pts,full);
   if(mode==='marathon')level=startLv+(lines/10|0);
   SFX.clear(n);if(level>oldLv)SFX.level()}
+ else combo=-1;
  stats();
  if(n)return;
  if(above)return gameOver();
@@ -157,6 +165,13 @@ function buildGrid(){gridLayer=document.createElement('canvas');gridLayer.width=
  g.strokeStyle='rgba(255,255,255,.05)';g.lineWidth=1;for(let i=1;i<W;i++){g.beginPath();g.moveTo(i*C+.5,0);g.lineTo(i*C+.5,600);g.stroke()}
  for(let i=1;i<H;i++){g.beginPath();g.moveTo(0,i*C+.5);g.lineTo(300,i*C+.5);g.stroke()}}
 function burst(rows){rows.forEach(y=>{for(let i=0;i<W;i++)for(let k=0;k<2;k++)parts.push({x:i*C+15,y:y*C+15,vx:(Math.random()-.5)*7,vy:(Math.random()-.8)*6,l:1,c:COL[grid[y][i]]||'#fff'})})}
+function pop(msgs,pts,rows){const y=Math.min(...rows)*C-10;pops.push({msgs,pts,y:Math.max(70,y),t:0})}
+function drawPops(){pops=pops.filter(p=>{p.t+=16.7;const a=p.t<150?p.t/150:Math.max(0,1-(p.t-700)/400),rise=p.t*.03;
+  cx.save();cx.globalAlpha=a;cx.textAlign='center';cx.shadowColor='rgba(0,0,0,.6)';cx.shadowBlur=6;
+  p.msgs.forEach((m,i)=>{cx.font='800 '+(i===0?22:17)+'px -apple-system,system-ui,sans-serif';
+   cx.fillStyle=m==='TETRIS'?'#00d4ff':m==='BACK-TO-BACK'?'#ffd400':'#ff7ad9';cx.fillText(m,150,p.y-rise-(p.msgs.length-i)*24)});
+  cx.font='700 16px -apple-system,system-ui,sans-serif';cx.fillStyle='#fff';cx.fillText('+'+p.pts.toLocaleString(),150,p.y-rise);
+  cx.restore();return p.t<1100})}
 function fx(){flash=flash.filter(f=>{cx.fillStyle=`rgba(255,255,255,${f.t*.7})`;cx.fillRect(0,f.y*C,300,C);f.t-=.07;return f.t>0});
  parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.35;p.l-=.025;cx.globalAlpha=Math.max(p.l,0);cx.fillStyle=p.c;cx.fillRect(p.x,p.y,5,5);cx.globalAlpha=1;return p.l>0})}
 function draw(){cx.setTransform(DPR,0,0,DPR,0,0);cx.clearRect(0,0,300,600);if(!gridLayer)buildGrid();cx.drawImage(gridLayer,0,0,300,600);
@@ -165,7 +180,7 @@ function draw(){cx.setTransform(DPR,0,0,DPR,0,0);cx.clearRect(0,0,300,600);if(!g
  if(clearing){const p=Math.min(clearing.t/CLEAR_MS,1),a=p<.35?.85:.85*(1-(p-.35)/.65);
   clearing.rows.forEach(y=>{cx.fillStyle=`rgba(255,255,255,${a})`;cx.fillRect(0,y*C,300,C);
    cx.fillStyle='rgba(8,10,24,'+(p*.9)+')';const sh=C*p/2;cx.fillRect(0,y*C,300,sh);cx.fillRect(0,y*C+C-sh,300,sh)})}
- fx();mini('hold',hold,!canHold);for(let i=0;i<3;i++)mini('n'+i,queue[i])}
+ fx();drawPops();mini('hold',hold,!canHold);for(let i=0;i<3;i++)mini('n'+i,queue[i])}
 const MINI={};
 function mini(id,t,dim){const key=(t||'')+(dim?1:0);if(MINI[id]===key)return;MINI[id]=key;const c=$(id).getContext('2d');c.clearRect(0,0,136,120);if(!t)return;const m=SH[t],s=26;let r0=9,r1=-1,c0=9,c1=-1;m.forEach((r,j)=>r.forEach((v,i)=>{if(v){r0=Math.min(r0,j);r1=Math.max(r1,j);c0=Math.min(c0,i);c1=Math.max(c1,i)}}));
  const ox=(136-(c1-c0+1)*s)/2-c0*s,oy=(120-(r1-r0+1)*s)/2-r0*s;m.forEach((r,j)=>r.forEach((v,i)=>v&&spr(c,ox+i*s,oy+j*s,s,COL[t],dim?.35:1)))}
@@ -201,7 +216,7 @@ function gameOver(){state='over';SFX.over();
  if(mode==='sprint'){endScreen('Game over',`${lines}/${SPRINT} lines`,false);return}
  const b=store.get('best_m',0),nb=score>b;if(nb)store.set('best_m',score);endScreen('Game over','Score '+score.toLocaleString(),nb&&score>0)}
 function finishSprint(){state='over';SFX.win();cur=null;const b=store.get('best_s',null),nb=!b||elapsed<b;if(nb)store.set('best_s',Math.round(elapsed));endScreen('Complete!',fmtT(elapsed),nb)}
-function newGame(){clearing=null;softOn=false;grid=Array.from({length:H},()=>Array(W).fill(0));bag=[];queue=[];hold=null;canHold=true;score=0;lines=0;elapsed=0;parts=[];flash=[];
+function newGame(){clearing=null;combo=-1;b2b=false;pops=[];softOn=false;grid=Array.from({length:H},()=>Array(W).fill(0));bag=[];queue=[];hold=null;canHold=true;score=0;lines=0;elapsed=0;parts=[];flash=[];
  level=mode==='marathon'?startLv:1;state='play';M.style.display='none';stats();spawn(nextType());canHold=true}
 function pause(){softOn=false;if(state==='play'){state='paused';pauseMenu()}else if(state==='paused')resume()}
 function resume(){state='play';M.style.display='none';last=performance.now()}
