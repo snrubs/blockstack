@@ -5,11 +5,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Tetris">
+<meta name="theme-color" content="#080a18">
 <title>Tetris</title>
 <style>
 *{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-html,body{margin:0;height:100%;color:#fff;font-family:-apple-system,"SF Pro Rounded",system-ui,sans-serif;overflow:hidden;background:radial-gradient(120% 80% at 50% 0%,#2a1f5c 0%,#12142e 50%,#080a18 100%)}
-#app{display:flex;flex-direction:column;height:100%;padding:env(safe-area-inset-top) 10px env(safe-area-inset-bottom)}
+html{background:#080a18}
+html,body{margin:0;position:fixed;inset:0;width:100%;height:100%;color:#fff;font-family:-apple-system,"SF Pro Rounded",system-ui,sans-serif;overflow:hidden;background:radial-gradient(120% 80% at 50% 0%,#2a1f5c 0%,#12142e 50%,#080a18 100%)}
+#app{display:flex;flex-direction:column;height:100%;box-sizing:border-box;padding:env(safe-area-inset-top) 10px env(safe-area-inset-bottom)}
 #top{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:8px 0}
 .stat{flex:1;text-align:center;padding:6px 4px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#a9b0d8}
 .stat b{display:block;font-size:20px;letter-spacing:0;color:#fff;font-variant-numeric:tabular-nums}
