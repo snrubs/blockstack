@@ -73,7 +73,7 @@ const K_I=[[[0,0],[-2,0],[1,0],[-2,-1],[1,2]],[[0,0],[-1,0],[2,0],[-1,2],[2,-1]]
 const $=id=>document.getElementById(id);
 const cv=$('board'),cx=cv.getContext('2d');
 const store={get(k,d){try{const v=localStorage.getItem('bs_'+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('bs_'+k,JSON.stringify(v))}catch(e){}}};
-let mode=store.get('mode','marathon'),startLv=store.get('lvl',1),muted=store.get('mute',false);
+let mode=store.get('mode','marathon'),startLv=store.get('lvl',1),muted=store.get('mute',false),showPad=store.get('pad',true);
 let grid=Array.from({length:H},()=>Array(W).fill(0)),cur=null,bag=[],queue=[],hold=null,canHold,score=0,lines=0,level=1;
 let combo=-1,b2b=false,pops=[],softOn=false,softAcc=0,clearing=null,state='menu',dropAcc=0,lockT=0,resets=0,lowest=0,last=0,elapsed=0,parts=[],flash=[];
 
@@ -200,17 +200,19 @@ function tick(t){requestAnimationFrame(tick);const dt=Math.min(t-last,100);last=
 const M=$('msg');
 function best(){return mode==='sprint'?store.get('best_s',null):store.get('best_m',0)}
 function bestTxt(){const b=best();return mode==='sprint'?(b?'Best time '+fmtT(b):'No best time yet'):(b?'Best '+b.toLocaleString():'No best score yet')}
+function applyPad(){$('pad').style.display=showPad?'':'none';fit()}
+function padBtn(){return`<button class="tog ${showPad?'on':''}" data-c="pad">${showPad?'&#9745;':'&#9744;'} Show controls</button>`}
 function sndBtn(){return`<button class="tog ${muted?'':'on'}" data-c="mute">${muted?'Sound off':'Sound on'}</button>`}
 function menu(){state='menu';cur=null;clearing=null;M.style.display='flex';
  M.innerHTML=`<div class="t">TETRIS</div>
  <div class="seg"><button data-c="m-marathon" class="${mode==='marathon'?'on':''}">Marathon</button><button data-c="m-sprint" class="${mode==='sprint'?'on':''}">40 Lines</button></div>
  ${mode==='marathon'?`<div class="row">Start level <button class="step" data-c="lv-">−</button><span class="lv">${startLv}</span><button class="step" data-c="lv+">+</button></div>`:'<div class="row">Clear 40 lines as fast as you can</div>'}
  <button class="big" data-c="play">Play</button>
- <div class="best">${bestTxt()}</div>${sndBtn()}
- <small>Tap the board to rotate. Swipe left or right to move, down to drop slowly, up to drop instantly.</small>`;
+ <div class="best">${bestTxt()}</div>${sndBtn()}${padBtn()}
+ <small>Tap the board to rotate, or tap the falling piece to hold it. Swipe left or right to move, down to drop slowly, up to drop instantly.</small>`;
  drawIdle()}
 function drawIdle(){grid=Array.from({length:H},()=>Array(W).fill(0));hold=null;queue=[];draw()}
-function pauseMenu(){M.style.display='flex';M.innerHTML=`<div>Paused</div><button class="big" data-c="resume">Resume</button><button class="sec" data-c="restart">Restart</button><button class="sec" data-c="menu">Main menu</button>${sndBtn()}`}
+function pauseMenu(){M.style.display='flex';M.innerHTML=`<div>Paused</div><button class="big" data-c="resume">Resume</button><button class="sec" data-c="restart">Restart</button>${padBtn()}<button class="sec" data-c="menu">Main menu</button>${sndBtn()}`}
 function endScreen(title,main,isNew){M.style.display='flex';M.innerHTML=`<div>${title}</div><div class="big2">${main}</div>${isNew?'<div class="nb">NEW BEST!</div>':`<div class="best">${bestTxt()}</div>`}<button class="big" data-c="play">Play again</button><button class="sec" data-c="menu">Main menu</button>`}
 function gameOver(){state='over';SFX.over();
  if(mode==='sprint'){endScreen('Game over',`${lines}/${SPRINT} lines`,false);return}
@@ -222,6 +224,7 @@ function pause(){softOn=false;if(state==='play'){state='paused';pauseMenu()}else
 function resume(){state='play';M.style.display='none';last=performance.now()}
 M.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;unlockAudio();const c=b.dataset.c;
  if(c==='play'||c==='restart')newGame();else if(c==='resume')resume();else if(c==='menu')menu();
+ else if(c==='pad'){showPad=!showPad;store.set('pad',showPad);b.outerHTML=padBtn();applyPad()}
  else if(c==='mute'){muted=!muted;store.set('mute',muted);b.outerHTML=sndBtn();if(!muted)SFX.rot()}
  else if(c&&c.startsWith('m-')){mode=c.slice(2);store.set('mode',mode);menu()}
  else if(c==='lv-'||c==='lv+'){startLv=Math.max(1,Math.min(15,startLv+(c==='lv+'?1:-1)));store.set('lvl',startLv);menu()}});
@@ -252,11 +255,14 @@ ZONE.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0],cs
   if(ay>=12&&ay>ax*1.2)gest=dy>0?'d':'u';else if(ax>=12&&ax>ay*1.6)gest='h'}
  if(gest==='h'){moved=true;while(dx-sc*cs>cs*.75){act('right');sc++}while(dx-sc*cs<-cs*.75){act('left');sc--}}
  else if(gest==='d'){moved=true;if(!softOn){softOn=true;softAcc=SOFT_MS}}},{passive:false});
+function onPiece(px,py){if(!cur)return false;const R=$('board').getBoundingClientRect(),c=R.width/W;if(!c)return false;
+ const gx=(px-R.left)/c,gy=(py-R.top)/c,pad=.6;
+ return cur.m.some((row,j)=>row.some((v,i)=>v&&gx>=cur.x+i-pad&&gx<=cur.x+i+1+pad&&gy>=cur.y+j-pad&&gy<=cur.y+j+1+pad))}
 const tEnd=e=>{const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy,dt=performance.now()-st;
  const wasSoft=softOn;softOn=false;
  // quick flick down (or up) = instant drop and lock; slow drag down = fast soft drop while finger is down
  if((gest==='d'&&dy>50&&dt<260)||(gest==='u'&&dy<-40&&dt<450))act('drop');
- else if(!moved&&!gest&&Math.abs(dx)<12&&Math.abs(dy)<12&&dt<350)act('rot');
+ else if(!moved&&!gest&&Math.abs(dx)<12&&Math.abs(dy)<12&&dt<350)act(onPiece(t.clientX,t.clientY)?'hold':'rot');
  if(wasSoft)stats()};
 ZONE.addEventListener('touchend',tEnd);ZONE.addEventListener('touchcancel',()=>{softOn=false});
 $('pause').onclick=()=>{unlockAudio();pause()};
@@ -267,6 +273,6 @@ addEventListener('keydown',e=>{if(e.key==='p'||e.key==='P'||e.key==='Escape')ret
 /* ---------- layout + boot ---------- */
 function fit(){const h=$('mid').clientHeight-4,w=window.innerWidth-24;const bh=Math.floor(Math.min(h,w*2));cv.style.height=bh+'px';cv.style.width=bh/2+'px'}
 if(window.ResizeObserver)new ResizeObserver(fit).observe($('mid'));addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,200));fit();setTimeout(fit,100);
-menu();requestAnimationFrame(t=>{last=t;tick(t)});
+applyPad();menu();requestAnimationFrame(t=>{last=t;tick(t)});
 if('serviceWorker'in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script></body></html>
