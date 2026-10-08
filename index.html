@@ -199,7 +199,7 @@ function tick(t){requestAnimationFrame(tick);const dt=Math.min(t-last,100);last=
 /* ---------- menus ---------- */
 const M=$('msg');
 function best(){return mode==='sprint'?store.get('best_s',null):store.get('best_m',0)}
-function bestTxt(){const b=best();return mode==='sprint'?(b?'Best time '+fmtT(b):'No best time yet'):(b?'Best '+b.toLocaleString():'No best score yet')}
+function bestTxt(){if(mode==='sprint'){const b=best();return b?'Best time '+fmtT(b):'No best time yet'}const b=store.get('best_m',0),l=store.get('best_l',0);return b||l?'Best score '+b.toLocaleString()+' &middot; Most lines '+l:'No best score yet'}
 function applyPad(){$('pad').style.display=showPad?'':'none';fit()}
 function padBtn(){return`<button class="tog ${showPad?'on':''}" data-c="pad">${showPad?'&#9745;':'&#9744;'} Show controls</button>`}
 function sndBtn(){return`<button class="tog ${muted?'':'on'}" data-c="mute">${muted?'Sound off':'Sound on'}</button>`}
@@ -213,10 +213,10 @@ function menu(){state='menu';cur=null;clearing=null;M.style.display='flex';
  drawIdle()}
 function drawIdle(){grid=Array.from({length:H},()=>Array(W).fill(0));hold=null;queue=[];draw()}
 function pauseMenu(){M.style.display='flex';M.innerHTML=`<div>Paused</div><button class="big" data-c="resume">Resume</button><button class="sec" data-c="restart">Restart</button>${padBtn()}<button class="sec" data-c="menu">Main menu</button>${sndBtn()}`}
-function endScreen(title,main,isNew){M.style.display='flex';M.innerHTML=`<div>${title}</div><div class="big2">${main}</div>${isNew?'<div class="nb">NEW BEST!</div>':`<div class="best">${bestTxt()}</div>`}<button class="big" data-c="play">Play again</button><button class="sec" data-c="menu">Main menu</button>`}
+function endScreen(title,main,isNew,extra){M.style.display='flex';M.innerHTML=`<div>${title}</div><div class="big2">${main}</div>${isNew?'<div class="nb">NEW BEST!</div>':extra?`<div class="nb">${extra}</div><div class="best">${bestTxt()}</div>`:`<div class="best">${bestTxt()}</div>`}<button class="big" data-c="play">Play again</button><button class="sec" data-c="menu">Main menu</button>`}
 function gameOver(){state='over';SFX.over();
  if(mode==='sprint'){endScreen('Game over',`${lines}/${SPRINT} lines`,false);return}
- const b=store.get('best_m',0),nb=score>b;if(nb)store.set('best_m',score);endScreen('Game over','Score '+score.toLocaleString(),nb&&score>0)}
+ const b=store.get('best_m',0),bl=store.get('best_l',0),nb=score>b&&score>0,nl=lines>bl;if(score>b)store.set('best_m',score);if(nl)store.set('best_l',lines);endScreen('Game over','Score '+score.toLocaleString()+'<br><span style="font-size:18px;font-weight:600">Lines '+lines+'</span>',false,(nb?'NEW BEST SCORE!':'')+(nb&&nl?'<br>':'')+(nl?'NEW LINES RECORD!':''))}
 function finishSprint(){state='over';SFX.win();cur=null;const b=store.get('best_s',null),nb=!b||elapsed<b;if(nb)store.set('best_s',Math.round(elapsed));endScreen('Complete!',fmtT(elapsed),nb)}
 function newGame(){clearing=null;combo=-1;b2b=false;pops=[];softOn=false;grid=Array.from({length:H},()=>Array(W).fill(0));bag=[];queue=[];hold=null;canHold=true;score=0;lines=0;elapsed=0;parts=[];flash=[];
  level=mode==='marathon'?startLv:1;state='play';M.style.display='none';stats();spawn(nextType());canHold=true}
