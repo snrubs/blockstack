@@ -265,6 +265,10 @@ const tEnd=e=>{const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy,dt=pe
  else if(!moved&&!gest&&Math.abs(dx)<12&&Math.abs(dy)<12&&dt<350)act(onPiece(t.clientX,t.clientY)?'hold':'rot');
  if(wasSoft)stats()};
 ZONE.addEventListener('touchend',tEnd);ZONE.addEventListener('touchcancel',()=>{softOn=false});
+// block iOS double-tap zoom and pinch everywhere
+let lastTE=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-lastTE<350&&e.cancelable)e.preventDefault();lastTE=n},{passive:false});
+['gesturestart','gesturechange','gestureend'].forEach(g=>document.addEventListener(g,e=>e.preventDefault()));
+document.addEventListener('dblclick',e=>e.preventDefault());
 $('pause').onclick=()=>{unlockAudio();pause()};
 addEventListener('keydown',e=>{if(e.key==='p'||e.key==='P'||e.key==='Escape')return pause();
  const m={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'rot',x:'rot',X:'rot',z:'ccw',Z:'ccw',ArrowDown:'soft',' ':'drop',c:'hold',C:'hold'}[e.key];
