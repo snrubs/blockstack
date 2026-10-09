@@ -18,6 +18,7 @@ html,body{margin:0;position:fixed;inset:0;width:100%;height:100%;color:#fff;font
 #strip{display:flex;gap:8px;justify-content:center;padding:2px 0 8px}.sp{flex:1}
 .side{width:60px;text-align:center;font-size:9px;letter-spacing:.14em;color:#a9b0d8}
 .side canvas{width:60px;height:46px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;display:block;margin:3px auto 0}
+#hold{cursor:pointer}
 #mid{flex:1 1 0;position:relative;min-height:0;overflow:hidden}#mid canvas{position:absolute;top:0;left:50%;transform:translateX(-50%)}
 #board{flex:none;border-radius:6px;background:#0c1448;border:3px solid #2a4cff;box-shadow:0 0 18px rgba(50,90,255,.55),inset 0 0 30px rgba(0,0,20,.5)}
 #pad{display:grid;grid-template-columns:repeat(12,1fr);gap:8px;padding:10px 0 8px}
@@ -208,7 +209,7 @@ function menu(){state='menu';cur=null;clearing=null;M.style.display='flex';
  ${mode==='marathon'?`<div class="row">Start level <button class="step" data-c="lv-">−</button><span class="lv">${startLv}</span><button class="step" data-c="lv+">+</button></div>`:'<div class="row">Clear 40 lines as fast as you can</div>'}
  <button class="big" data-c="play">Play</button>
  <div class="best">${bestTxt()}</div>${sndBtn()}${padBtn()}
- <small>Tap the board to rotate, or tap the falling piece to hold it. Swipe left or right to move, down to drop slowly, up to drop instantly.</small>`;
+ <small>Tap the board to rotate, or tap the Hold box to hold the piece. Swipe left or right to move, down to drop slowly, up to drop instantly.</small>`;
  drawIdle()}
 function drawIdle(){grid=Array.from({length:H},()=>Array(W).fill(0));hold=null;queue=[];draw()}
 function pauseMenu(){M.style.display='flex';M.innerHTML=`<div>Paused</div><button class="big" data-c="resume">Resume</button><button class="sec" data-c="restart">Restart</button>${padBtn()}<button class="sec" data-c="menu">Main menu</button>${sndBtn()}`}
@@ -236,6 +237,7 @@ const onLand=()=>{if(LAND.matches&&state==='play')pause()};
 if(LAND.addEventListener)LAND.addEventListener('change',onLand);else LAND.addListener(onLand);
 
 /* ---------- input ---------- */
+$('hold').addEventListener('pointerdown',e=>{e.preventDefault();act('hold')});
 function act(a){if(state!=='play'||!cur||clearing)return;({left:()=>move(-1),right:()=>move(1),rot:()=>rotate(1),ccw:()=>rotate(-1),hold:doHold,drop:hardDrop,soft:softDrop})[a]()}
 const REPEAT={left:1,right:1};
 document.querySelectorAll('#pad button').forEach(b=>{let iv,to;const a=b.dataset.a;
@@ -261,7 +263,7 @@ const tEnd=e=>{const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy,dt=pe
  const wasSoft=softOn;softOn=false;
  // quick flick down (or up) = instant drop and lock; slow drag down = fast soft drop while finger is down
  if((gest==='d'&&dy>50&&dt<260)||(gest==='u'&&dy<-40&&dt<450))act('drop');
- else if(!moved&&!gest&&Math.abs(dx)<12&&Math.abs(dy)<12&&dt<350)act(onPiece(t.clientX,t.clientY)?'hold':'rot');
+ else if(!moved&&!gest&&Math.abs(dx)<12&&Math.abs(dy)<12&&dt<350)act('rot');
  if(wasSoft)stats()};
 ZONE.addEventListener('touchend',tEnd);ZONE.addEventListener('touchcancel',()=>{softOn=false});
 // block iOS double-tap zoom and pinch everywhere
